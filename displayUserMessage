@@ -1,0 +1,16 @@
+
+/*
+  This method can be implemented in your groovy Jira code.
+  When calling this method provide the string according to the comment in the method. The messageBody String can be any String.
+  The method will result in a popup of your Jira instance displaying your message.
+*/
+
+import com.onresolve.scriptrunner.runner.util.UserMessageUtil;
+
+private void displayUserMessage(String messageType, String messageBody, String closeType){
+    /*
+        *   messageType has to be either "info", "success", "warning" or "error" 
+        *   closeType has to be either "manual" or"auto
+    */
+    UserMessageUtil.flag(["type": messageType,"body": messageBody, "close": closeType]);
+}
