@@ -1,0 +1,55 @@
+
+/*
+  This method can be implemented in your groovy Jira scripts.
+  When calling this method, simply provide an issue for the relevant customfield configuration, a custom field to create the options for, a parent option id (optional),
+  a sequence number (if you do not know what this means, you can just use 0 instead) and a list of option values.
+  Additionally, there a two more methods that allow enabling or disabling options in bulk.
+*/
+
+import com.atlassian.jira.issue.customfields.option.Option;
+import com.atlassian.jira.issue.fields.config.FieldConfig
+import com.atlassian.jira.issue.fields.CustomField;
+import com.atlassian.jira.issue.Issue;
+import com.atlassian.jira.issue.customfields.manager.OptionsManager;
+import com.atlassian.jira.component.ComponentAccessor;
+ 
+private List<Option> createOptions (Issue issue, CustomField customField, Long parentOptionId, Long optionSequence, List<String> optionValues){
+ 
+    OptionsManager optionsManager = ComponentAccessor.getOptionsManager();
+    FieldConfig fieldConfig = customField.getRelevantConfig(issue);
+    return optionsManager.createOptions(fieldConfig, parentOptionId, optionSequence, optionValues);
+}
+ 
+private void enableOptions (Issue issue, CustomField customField, Long parentOptionId, Long optionSequence, List<String> optionValues){
+     
+    OptionsManager optionsManager = ComponentAccessor.getOptionsManager();
+    FieldConfig fieldConfig = customField.getRelevantConfig(issue);
+    List<Option> optionList = optionsManager.getOptions(fieldConfig);
+    optionValues.each { String optionValue ->
+ 
+        optionList.find { Option option ->
+ 
+            if (option.getValue().toString().equalsIgnoreCase(optionValue)){
+ 
+                optionsManager.enableOption(option);
+            }
+        }
+    }
+}
+ 
+private void disableOptions (Issue issue, CustomField customField, Long parentOptionId, Long optionSequence, List<String> optionValues){
+     
+    OptionsManager optionsManager = ComponentAccessor.getOptionsManager();
+    FieldConfig fieldConfig = customField.getRelevantConfig(issue);
+    List<Option> optionList = optionsManager.getOptions(fieldConfig);
+    optionValues.each { String optionValue ->
+ 
+        optionList.find { Option option ->
+ 
+            if (option.getValue().toString().equalsIgnoreCase(optionValue)){
+ 
+                optionsManager.disableOption(option);
+            }
+        }
+    }
+}
