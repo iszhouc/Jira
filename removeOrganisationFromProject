@@ -21,7 +21,7 @@ import com.atlassian.jira.component.ComponentAccessor;
 import com.atlassian.servicedesk.api.ServiceDeskManager;
 import com.atlassian.servicedesk.api.organization.OrganizationService;
  
-private void removeOrganisation (String organisationName, String projectKey) {
+private void removeOrganisationFromProject (String organisationName, String projectKey) {
   
     @WithPlugin("com.atlassian.servicedesk")
     @PluginModule ServiceDeskManager serviceDeskManager;
@@ -29,7 +29,7 @@ private void removeOrganisation (String organisationName, String projectKey) {
   
     LinkedList<ApplicationUser> result;
   
-    Logger logger = Logger.getLogger("de.louis.scriptrunner.methods.removeOrganisation");
+    Logger logger = Logger.getLogger("de.louis.scriptrunner.methods.removeOrganisationFromProject");
     logger.setLevel(Level.DEBUG);
   
     ApplicationUser applicationUser = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser();
