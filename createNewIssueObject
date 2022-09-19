@@ -1,0 +1,44 @@
+
+/*
+  This method can be implemented in your groovy Jira scripts.
+  Provide a project key, an issue type name, a reporter user's key and a summary when calling this method.
+  It will return a new issue.
+*/
+
+import com.atlassian.jira.issue.IssueInputParameters
+import com.atlassian.jira.issue.issuetype.IssueType
+import com.atlassian.jira.project.Project
+import com.atlassian.jira.project.ProjectManager
+import com.atlassian.jira.user.ApplicationUser
+import com.atlassian.jira.config.ConstantsManager
+import com.atlassian.jira.bc.issue.IssueService
+import com.atlassian.jira.component.ComponentAccessor;
+import com.atlassian.jira.issue.context.IssueContext;
+import com.atlassian.jira.issue.context.IssueContextImpl;
+import com.atlassian.jira.issue.Issue;
+
+private Issue createNewIssueObject(String projectKey, String issueTypeName, String reporterKey, String summary){
+
+    IssueService issueService = ComponentAccessor.getIssueService();
+    ConstantsManager constantsManager = ComponentAccessor.getConstantsManager();
+    ApplicationUser currentUser = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser();
+    ProjectManager projectManager = ComponentAccessor.getProjectManager();
+    Project project = ComponentAccessor.projectManager.getProjectObjByKey(projectKey);
+    assert project : "Could not find project with key $projectKey";
+    IssueType issueType = constantsManager.getAllIssueTypeObjects().findByName(issueTypeName);
+    assert issueType : "Could not find issue type with name $issueTypeName";
+    ApplicationUser reporter = ComponentAccessor.userManager.getUserByKey(reporterKey) ?: currentUser;
+    IssueContext issueContext = new IssueContextImpl(project, issueType) as IssueContext;
+    IssueInputParameters issueInputParameters = issueService.newIssueInputParameters().with {
+    setProjectId(project.getId())
+    setIssueTypeId(issueType.getId())
+    setReporterId(reporter.getName())
+    setSummary(summary)
+    }
+    def validationResult = issueService.validateCreate(currentUser, issueInputParameters)
+    assert validationResult.valid : validationResult.errorCollection
+
+    def result = issueService.create(currentUser, validationResult)
+    assert result.valid : result.errorCollection
+    return result as Issue;
+}
