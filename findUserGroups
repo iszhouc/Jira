@@ -1,0 +1,16 @@
+
+/*
+  This method can be implemented in your groovy Jira scripts.
+  When calling this method, simply provide a query string, i.e., a groupname, key, etc. or just provide an empty string like this one here: "".
+  This will return all available user groups of your Jira instance.
+*/
+
+import com.atlassian.crowd.model.group.Group
+import com.atlassian.jira.bc.group.search.GroupPickerSearchService
+import com.atlassian.jira.component.ComponentAccessor
+ 
+private LinkedList<Group> findUserGroups (String queryString) {
+ 
+    GroupPickerSearchService groupPickerSearchService = ComponentAccessor.getComponent(GroupPickerSearchService);
+    return groupPickerSearchService.findGroups(queryString) as LinkedList<Group>;
+}
