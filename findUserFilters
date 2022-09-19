@@ -33,7 +33,7 @@ private LinkedList<HashMap> findUserFilters(String queryString){
         List<HashMap> searchRequestDataList = [];
         for(SearchRequest searchRequest : searchRequestService.getOwnedFilters(applicationUser)){
 
-            searchRequestDataList.add("name": searchRequest.getName(), "id": searchRequest.getId(), "self": "/issues/?filter="+searchRequest.getId());
+            searchRequestDataList.add("name": searchRequest.getName(), "id": searchRequest.getId(), "self": "/issues/?filter="+searchRequest.getId(), "queryString": searchRequest.getQuery().getQueryString());
         }
         result.add("displayname": applicationUser.getDisplayName(), "key": applicationUser.getKey(), "filters": searchRequestDataList);
     }
