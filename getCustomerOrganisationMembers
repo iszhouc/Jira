@@ -23,7 +23,7 @@ import com.atlassian.jira.component.ComponentAccessor;
 import com.atlassian.servicedesk.api.ServiceDeskManager;
 import com.atlassian.servicedesk.api.organization.OrganizationService;
  
-private LinkedList<ApplicationUser> getOrganisationMembers (String organisationName, String projectKey) {
+private LinkedList<ApplicationUser> getCustomerOrganisationMembers (String organisationName, String projectKey) {
  
     @WithPlugin("com.atlassian.servicedesk")
     @PluginModule ServiceDeskManager serviceDeskManager;
@@ -31,7 +31,7 @@ private LinkedList<ApplicationUser> getOrganisationMembers (String organisationN
  
     LinkedList<ApplicationUser> result;
  
-    Logger logger = Logger.getLogger("de.louis.scriptrunner.methods.getOrganisationMembers");
+    Logger logger = Logger.getLogger("de.louis.scriptrunner.methods.getCustomerOrganisationMembers");
     logger.setLevel(Level.DEBUG);
  
     UsersInOrganizationQuery.Builder usersInOrganizationQueryBuilder = ComponentAccessor.getComponent(UsersInOrganizationQuery.Builder.class);
