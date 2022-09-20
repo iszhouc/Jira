@@ -1,5 +1,4 @@
 
-//IMPORT:
 import com.atlassian.applinks.api.application.confluence.ConfluenceApplicationType
 import com.atlassian.applinks.api.ApplicationLinkRequestFactory
 import com.atlassian.jira.security.JiraAuthenticationContext
@@ -32,29 +31,18 @@ import groovy.json.JsonBuilder
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
 
-//MADE BY LOUIS GOODNEWS
-
-/*
-DESCRIPTION:
-This script will fetch the current issue (given it's a sub-task) and will procedd to fetch it's parent to then post a webrequest to a linked Confluence.
-In Confluence, pages will be created. Currently the created pages will be copied from a template page.
-Future versions of this script should provide their own content body, to append the parent issue's data.
-*/
-
-//CONSTANTS:
 class CONSTANTS{
 
-    //PARAMETER:
-    static final String TARGETSPACEKEY = "PROJEKTE" //-> target space for page creation
-    static final String ISSUEKEY = "APM-1335" //-> issue key for debugging/testing purposes
-    static final Long PROJECTNUMBERID = 13801L //-> custom field id for custom field project number
-    static final Long PROJECTGOALID = 13804L //-> custom field id for custom field project goal
-    static final Long PROJECTNONGOALID = 15803L //-> custom field id for custom field project non goal
-    static final Long PRODUCTLINEID = 17800L //-> custom field id for custom field product line
-    static final Long PRODUCTGROUPID = 13813L //-> custom field id for custom field product group
-    static final Long PROJECTOWNERID = 15802L //-> custom field id for custom field project owner
-    static final Long PLVID = 15805L //-> custom field id for custom field plv
-    static final String BASEURL = "https://confluence.lodego.de" //base url of target Confluence instance
+    static final String KEY_TARGET_SPACE = "TARGET_SPACE" //-> target space for page creation
+    static final String ISSUEKEY = "<enter issue key here>"
+    static final Long CF_ID_PROJECT_NUMBER = 13801L
+    static final Long CF_ID_PROJECT_GOAL = 13804L
+    static final Long CF_ID_PROJECT_FAIL = 15803L
+    static final Long CF_ID_PRODUCT_CATEGORY = 17800L
+    static final Long CF_ID_PRODUCT_CATEGORY_GROUP = 13813L
+    static final Long CF_ID_PROJECT_OWNER = 15802L
+    static final Long CF_ID_PROJECT_LIVE_VERSION = 15805L
+    static final String REMOTE_BASE_URL = "https://confluence.lodego.de"
     static final LinkedHashMap<String, String> BLUEPRINTHASH = [
         "128679937" : "projectId",
         "128679944" : "projectTasks",
@@ -69,14 +57,12 @@ class CONSTANTS{
         "128679954" : "prototypeReports",
         "128679955" : "protocol",
         "128679956" : "statusReport"
-    ] //-> these are the blueprint titles are well as their repsective ids. If there are changes in Confluence, you need to update these in this script as well!
+    ]
 }
 
-//LOGGER:
 Logger logger = Logger.getLogger("com.louis.console.debugging.createProjectDocumentation")
 logger.setLevel(Level.DEBUG)
 
-//INITIALISATION:
 Issue issue;
 StringBuilder webLink = new StringBuilder()
 StringBuilder goodsGroupPageId = new StringBuilder()
@@ -90,7 +76,6 @@ LinkedHashMap<String, Object> userDataParams = new LinkedHashMap<String, Object>
 LinkedHashMap<String, Object> pageContentVars = new LinkedHashMap<String, Object>()
 LinkedHashMap<String, String> userPickerCustomFieldHash = new LinkedHashMap<String, String>()
 
-//DECLARATION:
 IssueManager issueManager = ComponentAccessor.getIssueManager()
 CommentManager commentManager = ComponentAccessor.getCommentManager()
 CustomFieldManager customFieldManager = ComponentAccessor.getCustomFieldManager()
@@ -105,10 +90,6 @@ LinkedHashMap<String, String> requestHeadersMap = [
     "Accept": "application/json"
 ]
 
-/*
-DESCRIPTION:
-Before we can collect data, we need to get the user ids for the users related to the current issue. This'll be done via RES call to Confluence
-*/
 for (CustomField customFieldObject : customFieldManager.getCustomFieldObjects(issue)) {
 	
     if (customFieldObject.getCustomFieldType().getName().toLowerCase().contains("user picker (single user)")) {
@@ -127,7 +108,7 @@ if (userPickerCustomFieldHash) {
             commentManager.create(issue, currentUser, "Script execution was erroneous (Error 001). Please check the respective log entries for debugging.", false)
             return "Error 001 - Users related to issue could not be retrieved! ${userPickerCustomFieldHash.get(customFieldId)}"
         }
-        LinkedHashMap<String, Object> getParticularUser = executeLinkedGetRequest("${CONSTANTS.BASEURL}/rest/api/user?username=${issueRelatedUser.getName()}", logger)
+        LinkedHashMap<String, Object> getParticularUser = executeLinkedGetRequest("${CONSTANTS.REMOTE_BASE_URL}/rest/api/user?username=${issueRelatedUser.getName()}", logger)
         userDataParams.put(userPickerCustomFieldHash.get(customFieldId), [issueRelatedUser.getName(), getParticularUser.get("userKey")])
     }
 } else {
@@ -141,28 +122,19 @@ for (String key : userDataParams.keySet()) {
     pageContentVars.put(new StringBuilder().append("var" + key.replace(" ", "") + "Id").toString(), userDataParams.get(key).getAt(1))    
 }
 
-/*
-DESCRIPTION:
-Before we can send requests to Confluence, we need to gather issue data first. In this case we should check,
-if the issue is an approval issue and then gain information from it's parent issue.
-*/
 pageContentVars.put("varTypeName", issue.getIssueType().getName())
 pageContentVars.put("varPriorityName", issue.getPriority().getName())
 pageContentVars.put("varStatusName", issue.getStatus().getName())
-pageContentVars.put("varPLVName", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.PLVID))?.getDisplayName())
-pageContentVars.put("varProductLineName", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.PRODUCTLINEID)))
-pageContentVars.put("varProjectOwnerName", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.PROJECTOWNERID))?.getDisplayName())
-pageContentVars.put("varProjectNumberName", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.PROJECTNUMBERID)))
+pageContentVars.put("varPLVName", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.CF_ID_PROJECT_LIVE_VERSION))?.getDisplayName())
+pageContentVars.put("varProductLineName", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.CF_ID_PRODUCT_CATEGORY)))
+pageContentVars.put("varProjectOwnerName", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.CF_ID_PROJECT_OWNER))?.getDisplayName())
+pageContentVars.put("varProjectNumberName", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.CF_ID_PROJECT_NUMBER)))
 pageContentVars.put("varProjectClassName", issue.getIssueType().getName())
-pageContentVars.put("varGoodsGroupName", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.PROJECTNUMBERID)).toString().find("[0-9]+"))
-pageContentVars.put("varProjectGoal", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.PROJECTGOALID)))
-pageContentVars.put("varProjectNonGoal", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.PROJECTNONGOALID)))
+pageContentVars.put("varGoodsGroupName", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.CF_ID_PROJECT_NUMBER)).toString().find("[0-9]+"))
+pageContentVars.put("varProjectGoal", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.CF_ID_PROJECT_GOAL)))
+pageContentVars.put("varProjectNonGoal", issue.getCustomFieldValue(customFieldManager.getCustomFieldObject(CONSTANTS.CF_ID_PROJECT_FAIL)))
 pageContentVars.put("varProjectTypeId", issue.getIssueType().getName().find("[0-9]+"))
 
-/*
-DESCRIPTION:
-Check if all params could be fetched.
-*/
 if (pageContentVars.values().toString().contains("null")) { //check if issue data could be retrieved
 
     List<String> errorResult = []
@@ -177,15 +149,11 @@ if (pageContentVars.values().toString().contains("null")) { //check if issue dat
     return "Error 003 - Issue data could not be retrieved! ${errorResult}"
 }
 
-/*
-DESCRIPTION:
-For the newly initialized pageContentList, we add the body storgae value from the existing pages in Confluence, that serve as templates. Specific pages will be edited to contain data from the issue.
-*/
 for (String outerKey in CONSTANTS.BLUEPRINTHASH.keySet()) {
 	
 	if (outerKey.equals("128679937")) {
 		
-		String vProjectPageBody = executeWebRequest("", "${CONSTANTS.BASEURL}/rest/experimental/template/${outerKey}?expand=body.storage.value", "GET", requestHeadersMap, null, true).get("body").get("body").get("storage").get("value").toString()
+		String vProjectPageBody = executeWebRequest("", "${CONSTANTS.REMOTE_BASE_URL}/rest/experimental/template/${outerKey}?expand=body.storage.value", "GET", requestHeadersMap, null, true).get("body").get("body").get("storage").get("value").toString()
 		for (String innerKey : pageContentVars.keySet()) {
 			
 			if (vProjectPageBody.contains(key)) {
@@ -196,17 +164,12 @@ for (String outerKey in CONSTANTS.BLUEPRINTHASH.keySet()) {
 		pageContentList.add(vProjectPageBody)
 	} else {
 		
-		pageContentList.add(executeGetRequest("", "${CONSTANTS.BASEURL}/rest/experimental/template/${outerKey}?expand=body.storage.value", logger).get("body").get("body").get("storage").get("value").toString())
+		pageContentList.add(executeGetRequest("", "${CONSTANTS.REMOTE_BASE_URL}/rest/experimental/template/${outerKey}?expand=body.storage.value", logger).get("body").get("body").get("storage").get("value").toString())
 	}
 }
 
-//TASK(S):
-/*
-DESCRIPTION:
-With the following requests the script will search Confluence for already existing parents. If none are found, parents will be created, otherwise parents will be processed.
-*/
-LinkedHashMap<String, Object> getParentSpace = executeLinkedGetRequest("${CONSTANTS.BASEURL}/rest/api/space/${CONSTANTS.TARGETSPACEKEY}", logger)
-LinkedHashMap<String, Object> getParentGoodsGroup = executeLinkedGetRequest("${CONSTANTS.BASEURL}/rest/api/content?spaceKey=${getParentSpace.get("key")}&title=Warengruppe+${pageContentVars.get("varGoodsGroupName")}", logger)
+LinkedHashMap<String, Object> getParentSpace = executeLinkedGetRequest("${CONSTANTS.REMOTE_BASE_URL}/rest/api/space/${CONSTANTS.KEY_TARGET_SPACE}", logger)
+LinkedHashMap<String, Object> getParentGoodsGroup = executeLinkedGetRequest("${CONSTANTS.REMOTE_BASE_URL}/rest/api/content?spaceKey=${getParentSpace.get("key")}&title=Warengruppe+${pageContentVars.get("varGoodsGroupName")}", logger)
 if (getParentGoodsGroup.get("results").size() > 1) {
 	
     commentManager.create(issue, currentUser, "Script execution was erroneous (Error 004). Please check the respective log entries for debugging.", false)
@@ -215,7 +178,7 @@ if (getParentGoodsGroup.get("results").size() > 1) {
 LinkedList<Object> goodsGroupDescendants = new LinkedList<Object>()
 if (getParentGoodsGroup.get("results").size() == 1) {
 	
-    goodsGroupDescendants = executeLinkedGetRequest("${CONSTANTS.BASEURL}/rest/api/content/${getParentGoodsGroup.get("results").getAt(0).get("id")}/child/page", logger).get("results") as LinkedList<Object>
+    goodsGroupDescendants = executeLinkedGetRequest("${CONSTANTS.REMOTE_BASE_URL}/rest/api/content/${getParentGoodsGroup.get("results").getAt(0).get("id")}/child/page", logger).get("results") as LinkedList<Object>
     for (Object descendant : goodsGroupDescendants) {
 			
 		byte[] titleBytes = descendant.get("title").getBytes(StandardCharsets.US_ASCII)
@@ -227,11 +190,6 @@ if (getParentGoodsGroup.get("results").size() == 1) {
     }
 }
 
-/*
-DESCRIPTION:
-In the for-loop we iterate through CONSTANTS.PAGETREE's key set and use the values to provide a page title parameter for the request for Confluence.
-In parallel, we iterate through pageContentList to provide a page body storage value parameter for the request for Confluence.
-*/
 try{
     if (!getParentGoodsGroup.get("results")) {
 		
@@ -239,7 +197,7 @@ try{
                 type : "page",
                 title : new StringBuilder().append("Warengruppe " + pageContentVars.get("varGoodsGroupName")),
                 space : [
-                        key: CONSTANTS.TARGETSPACEKEY
+                        key: CONSTANTS.KEY_TARGET_SPACE
                 ],
                 body : [
                         storage: [
@@ -266,7 +224,7 @@ try{
                 type : "page",
                 title : new StringBuilder().append(pageContentVars.get("varGoodsGroupName") + " ⬝ " + pageContentVars.get("varProjectTypeId")),
                 space : [
-                        key: CONSTANTS.TARGETSPACEKEY
+                        key: CONSTANTS.KEY_TARGET_SPACE
                 ],
                 body : [
                         storage: [
@@ -292,7 +250,7 @@ try{
                 type : "page",
                 title : new StringBuilder().append(pageContentVars.get("varProjectNumberName") + " ⬝ " + CONSTANTS.BLUEPRINTHASH.get(i)),
                 space : [
-                    key: CONSTANTS.TARGETSPACEKEY
+                    key: CONSTANTS.KEY_TARGET_SPACE
                 ],
                 body : [
                     storage: [
@@ -309,8 +267,8 @@ try{
             ] as LinkedHashMap<String, Object>
             LinkedHashMap<String, Object> createProjectAncestorPage = executeLinkedPostRequest("rest/api/content", projectAncestorPageParams, logger)
             projectTitlePageId.append(createProjectAncestorPage.get("id"))
-            webLinkHash.put(new StringBuilder().append(pageContentVars.get("varProjectNumberName") + " ⬝ " + CONSTANTS.BLUEPRINTHASH.get(i)).toString(), new StringBuilder().append("${CONSTANTS.BASEURL}/pages/viewpage.action?pageId=${projectTitlePageId}").toString())
-            webLink.append("${CONSTANTS.BASEURL}/pages/viewpage.action?pageId=${projectTitlePageId}")
+            webLinkHash.put(new StringBuilder().append(pageContentVars.get("varProjectNumberName") + " ⬝ " + CONSTANTS.BLUEPRINTHASH.get(i)).toString(), new StringBuilder().append("${CONSTANTS.REMOTE_BASE_URL}/pages/viewpage.action?pageId=${projectTitlePageId}").toString())
+            webLink.append("${CONSTANTS.REMOTE_BASE_URL}/pages/viewpage.action?pageId=${projectTitlePageId}")
             LinkedList<Object> projectAncestorLabelParams = [
                     [
                         name : "projectId"
@@ -336,7 +294,7 @@ try{
                 type : "page",
                 title: new StringBuilder().append(pageContentVars.get("varProjectNumberName") + " ⬝ " + CONSTANTS.BLUEPRINTHASH.get(i)),
                 space: [
-                    key: CONSTANTS.TARGETSPACEKEY
+                    key: CONSTANTS.KEY_TARGET_SPACE
                 ],
                 body : [
                     storage: [
@@ -368,7 +326,7 @@ try{
                         name : "Warengruppe_${pageContentVars.get("varGoodsGroupName")}"
                     ]
             ] as LinkedList<Object>
-            webLinkHash.put(new StringBuilder().append(pageContentVars.get("varProjectNumberName") + " ⬝ " + CONSTANTS.BLUEPRINTHASH.get(i)).toString(), new StringBuilder().append("${CONSTANTS.BASEURL}/pages/viewpage.action?pageId=${projectTitlePageId}").toString())
+            webLinkHash.put(new StringBuilder().append(pageContentVars.get("varProjectNumberName") + " ⬝ " + CONSTANTS.BLUEPRINTHASH.get(i)).toString(), new StringBuilder().append("${CONSTANTS.REMOTE_BASE_URL}/pages/viewpage.action?pageId=${projectTitlePageId}").toString())
             executeLinkedPostRequest("rest/api/content/${createProjectDescendantPage.get("id")}/label", projectDescendantLabelParams, logger)
         }
     }
@@ -377,10 +335,8 @@ try{
     logger.error("com.louis.console.debugging.createProjectDocumentation failed due to: ${e}")
 }
 
-//COMMENT ISSUE:
 commentManager.create(issue, currentUser, ("Hi there ${issue.getAssignee().getDisplayName()}, \n\n I've created the Confluence pages for you. You can find them [here|${webLink}]. \n\n Best regards, \n Scriptrunner.").toString(), false)
 
-//RETURN:
 return webLinkHash
 
 //____________________________________________________________________________________________________
@@ -504,10 +460,6 @@ private LinkedHashMap<String, Object> executeWebRequest (String requestAuthoriza
     };
 };
 
-/*
-METHOD:
-send get request
-*/
 private LinkedHashMap<String, Object> executeLinkedGetRequest(String requestUrl, Logger logger) {
         final ApplicationLink confluenceLink = ComponentLocator.getComponent(ApplicationLinkService).getPrimaryApplicationLink(ConfluenceApplicationType)
         try{
@@ -522,10 +474,6 @@ private LinkedHashMap<String, Object> executeLinkedGetRequest(String requestUrl,
 		return result
 }
 
-/*
-METHOD:
-send post request
-*/
 private LinkedHashMap<String, Object> executeLinkedPostRequest(String requestUrl, Object requestParams, Logger logger) {
         final ApplicationLink confluenceLink = ComponentLocator.getComponent(ApplicationLinkService).getPrimaryApplicationLink(ConfluenceApplicationType)
         try{
