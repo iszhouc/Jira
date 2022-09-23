@@ -44,19 +44,19 @@ class CONSTANTS{
     static final Long CF_ID_PROJECT_LIVE_VERSION = 15805L
     static final String REMOTE_BASE_URL = "https://confluence.lodego.de"
     static final LinkedHashMap<String, String> BLUEPRINTHASH = [
-        "128679937" : "projectId",
-        "128679944" : "projectTasks",
-        "128679946" : "projectToDos",
-        "128679947" : "productManagement",
-        "128679948" : "projectManagement",
-        "128679949" : "procurement",
-        "128679950" : "afterSales",
-        "128679951" : "ressourceDesign",
-        "128679952" : "testValidation",
-        "128679953" : "prep",
-        "128679954" : "prototypeReports",
-        "128679955" : "protocol",
-        "128679956" : "statusReport"
+        "000000000" : "projectId",
+        "000000000" : "projectTasks",
+        "000000000" : "projectToDos",
+        "000000000" : "productManagement",
+        "000000000" : "projectManagement",
+        "000000000" : "procurement",
+        "000000000" : "afterSales",
+        "000000000" : "ressourceDesign",
+        "000000000" : "testValidation",
+        "000000000" : "prep",
+        "000000000" : "prototypeReports",
+        "000000000" : "protocol",
+        "000000000" : "statusReport"
     ]
 }
 
